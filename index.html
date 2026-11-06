@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A simple interactive introduction to stacks and queues.">
+  <title>Data Structures Playground</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #64748b;
+      --paper: #f5f7fb;
+      --card: #ffffff;
+      --line: #e2e8f0;
+      --blue: #4263eb;
+      --blue-dark: #304cc4;
+      --purple: #7048e8;
+      --red: #e03131;
+      --green: #2b8a3e;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    header { padding: 48px 20px 38px; color: white; text-align: center; background: linear-gradient(130deg, #304cc4, #7048e8); }
+    header p { margin: 10px 0 0; color: #e8eaff; }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); }
+    main { width: min(1000px, calc(100% - 32px)); margin: 28px auto 60px; }
+    .intro, .playground { padding: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 24px #1720330b; }
+    .intro { margin-bottom: 20px; }
+    .intro p { color: var(--muted); line-height: 1.65; margin-bottom: 0; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .tab { padding: 10px 18px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: white; font-weight: 650; }
+    .tab[aria-selected="true"] { color: white; border-color: var(--blue); background: var(--blue); }
+    .definition { margin: 0 0 18px; color: var(--muted); line-height: 1.6; }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; }
+    input { flex: 1 1 180px; min-width: 0; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 9px; }
+    .action { padding: 10px 16px; border: 0; border-radius: 9px; color: white; background: var(--blue); font-weight: 650; }
+    .action:hover { background: var(--blue-dark); }
+    .action.secondary { color: var(--ink); background: #edf0f7; }
+    .action.remove { background: var(--red); }
+    .status { min-height: 24px; margin: 14px 0 4px; color: var(--muted); }
+    .status.error { color: var(--red); }
+    .visual { display: flex; min-height: 170px; align-items: flex-end; justify-content: center; gap: 10px; margin-top: 16px; padding: 20px; overflow-x: auto; border: 1px dashed #cbd5e1; border-radius: 12px; background: #f8faff; }
+    .item { display: grid; min-width: 64px; height: 58px; place-items: center; padding: 0 12px; border: 2px solid #748ffc; border-radius: 10px; color: #253b8f; background: #edf2ff; font-weight: 700; animation: appear .18s ease-out; }
+    .empty { align-self: center; color: #94a3b8; }
+    .hint { margin: 12px 0 0; color: var(--muted); font-size: .9rem; }
+    footer { padding: 0 16px 28px; color: var(--muted); text-align: center; font-size: .9rem; }
+    @keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 560px) { header { padding: 36px 16px 30px; } .intro, .playground { padding: 18px; } .tabs { display: grid; grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Data Structures Playground</h1>
+    <p>Learn by doing: try a Stack and a Queue.</p>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="about-title">
+      <h2 id="about-title">What are data structures?</h2>
+      <p>Data structures organize information so programs can use it effectively. Choose a structure below, add a value, and see how its operations work.</p>
+    </section>
+
+    <section class="playground" aria-labelledby="play-title">
+      <h2 id="play-title">Try it out</h2>
+      <div class="tabs" role="tablist" aria-label="Choose a data structure">
+        <button class="tab" id="stack-tab" role="tab" aria-selected="true" aria-controls="demo">Stack</button>
+        <button class="tab" id="queue-tab" role="tab" aria-selected="false" aria-controls="demo">Queue</button>
+      </div>
+      <p class="definition" id="definition"></p>
+      <div class="controls">
+        <input id="value-input" type="text" maxlength="18" placeholder="Enter a value" aria-label="Value to add">
+        <button class="action" id="add-button">Push</button>
+        <button class="action remove" id="remove-button">Pop</button>
+        <button class="action secondary" id="clear-button">Clear</button>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
+      <div class="visual" id="demo" role="img" aria-label="Empty data structure"></div>
+      <p class="hint" id="hint"></p>
+    </section>
+  </main>
+  <footer>Made with plain HTML, CSS, and JavaScript — no setup or libraries required.</footer>
+
+  <script>
+    const values = [];
+    let mode = "stack";
+    const definition = document.querySelector("#definition");
+    const input = document.querySelector("#value-input");
+    const addButton = document.querySelector("#add-button");
+    const removeButton = document.querySelector("#remove-button");
+    const status = document.querySelector("#status");
+    const visual = document.querySelector("#demo");
+    const hint = document.querySelector("#hint");
+
+    function updateView(message = "") {
+      definition.textContent = mode === "stack"
+        ? "A stack follows LIFO: Last In, First Out. The newest value is removed first."
+        : "A queue follows FIFO: First In, First Out. The oldest value is removed first.";
+      addButton.textContent = mode === "stack" ? "Push" : "Enqueue";
+      removeButton.textContent = mode === "stack" ? "Pop" : "Dequeue";
+      hint.textContent = mode === "stack"
+        ? "The top of the stack is on the right."
+        : "The front of the queue is on the left; new values join on the right.";
+      status.textContent = message;
+      status.classList.remove("error");
+      visual.replaceChildren();
+      visual.setAttribute("aria-label", values.length ? `${mode} with ${values.length} values` : "Empty data structure");
+      if (values.length === 0) {
+        const empty = document.createElement("span");
+        empty.className = "empty";
+        empty.textContent = "Your structure is empty";
+        visual.append(empty);
+        return;
+      }
+      values.forEach((value, index) => {
+        const item = document.createElement("div");
+        item.className = "item";
+        item.textContent = value;
+        item.title = mode === "stack" && index === values.length - 1 ? "Top of stack" : mode === "queue" && index === 0 ? "Front of queue" : "Value";
+        visual.append(item);
+      });
+    }
+
+    function showError(message) {
+      status.textContent = message;
+      status.classList.add("error");
+    }
+
+    document.querySelector("#stack-tab").addEventListener("click", () => {
+      mode = "stack";
+      document.querySelector("#stack-tab").setAttribute("aria-selected", "true");
+      document.querySelector("#queue-tab").setAttribute("aria-selected", "false");
+      updateView("Switched to Stack.");
+    });
+    document.querySelector("#queue-tab").addEventListener("click", () => {
+      mode = "queue";
+      document.querySelector("#stack-tab").setAttribute("aria-selected", "false");
+      document.querySelector("#queue-tab").setAttribute("aria-selected", "true");
+      updateView("Switched to Queue.");
+    });
+    addButton.addEventListener("click", () => {
+      const value = input.value.trim();
+      if (!value) return showError("Type a value before adding it.");
+      if (values.length >= 10) return showError("This demo holds up to 10 values. Clear it to start again.");
+      values.push(value);
+      input.value = "";
+      input.focus();
+      updateView(`Added “${value}” to the ${mode}.`);
+    });
+    removeButton.addEventListener("click", () => {
+      if (values.length === 0) return showError(`The ${mode} is empty — there is nothing to remove.`);
+      const removed = mode === "stack" ? values.pop() : values.shift();
+      updateView(`Removed “${removed}” from the ${mode}.`);
+    });
+    document.querySelector("#clear-button").addEventListener("click", () => {
+      values.length = 0;
+      updateView("Cleared the structure.");
+    });
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") addButton.click();
+    });
+
+    updateView("Choose Stack or Queue, then add a value.");
+  </script>
+</body>
+</html>
